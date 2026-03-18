@@ -8,12 +8,16 @@ import matplotlib.pyplot as plt
 import io
 import base64
 import threading
+import tempfile
 from collections import defaultdict
 from pathlib import Path
 
 app = Flask(__name__)
 
 DATASET_DIR = Path(app.root_path) / "dataset"
+TEMP_DIR = Path(tempfile.gettempdir())
+SCHEDULE_EXPORT_FILENAME = "jadwal_seminar.xlsx"
+SCHEDULE_EXPORT_PATH = TEMP_DIR / SCHEDULE_EXPORT_FILENAME
 DEFAULT_DATASET_FILES = {
     "kelompok": "Data_Kel.xlsx",
     "hari": "Hari.xlsx",
@@ -796,7 +800,7 @@ def execute_schedule_generation():
     else:
         global_warning_message = stop_reason
 
-    cetak_jadwal(schedule_sorted, "jadwal_seminar.xlsx")
+    cetak_jadwal(schedule_sorted, str(SCHEDULE_EXPORT_PATH))
 
 
 def background_generation_worker():
@@ -1021,8 +1025,9 @@ def get_progress():
 
 @app.route("/download_schedule")
 def download_schedule():
-    filename = "jadwal_seminar.xlsx"
-    return send_file(filename, as_attachment=True)
+    if not SCHEDULE_EXPORT_PATH.exists():
+        return "File jadwal belum tersedia. Silakan generate jadwal terlebih dahulu.", 404
+    return send_file(str(SCHEDULE_EXPORT_PATH), as_attachment=True, download_name=SCHEDULE_EXPORT_FILENAME)
 
 
 @app.route("/plot_fitness")
