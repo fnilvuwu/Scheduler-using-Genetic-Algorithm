@@ -1,0 +1,1110 @@
+<!DOCTYPE html>
+<html lang="id">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Genetic Algorithm Seminar Scheduler</title>
+    <style>
+        :root {
+            --bg-dark: #0f172a;
+            --panel-bg: #1e293b;
+            --line: #334155;
+            --dna-green: #2ecc71;
+            --parent-a: #3498db;
+            --parent-b: #9b59b6;
+            --text-main: #f1f5f9;
+            --text-muted: #94a3b8;
+            --accent: #00f2ff;
+            --danger: #ff6b6b;
+            --ok: #47d08c;
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            background: radial-gradient(circle at 20% 0%, #1c325d, transparent 35%), var(--bg-dark);
+            color: var(--text-main);
+            font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+            min-height: 100vh;
+        }
+
+        .lab-header {
+            width: 100%;
+            padding: 20px;
+            text-align: center;
+            border-bottom: 1px solid var(--accent);
+            background: rgba(0, 242, 255, 0.06);
+        }
+
+        .lab-header h1 {
+            margin: 0;
+            letter-spacing: 0.04em;
+        }
+
+        .lab-header p {
+            margin: 8px 0 0;
+            color: var(--text-muted);
+        }
+
+        .dashboard {
+            width: min(1300px, 94vw);
+            margin: 24px auto;
+            display: grid;
+            grid-template-columns: minmax(280px, 360px) minmax(0, 1fr);
+            gap: 18px;
+            align-items: start;
+        }
+
+        .control-panel,
+        .panel {
+            background: var(--panel-bg);
+            border: 1px solid var(--line);
+            border-radius: 12px;
+            padding: 16px;
+        }
+
+        .control-panel {
+            position: sticky;
+            top: 12px;
+            border-left: 4px solid var(--accent);
+        }
+
+        .panel-stack {
+            display: grid;
+            gap: 16px;
+        }
+
+        .stat-label {
+            font-size: 0.72rem;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+            margin-top: 12px;
+        }
+
+        .stat-value {
+            color: var(--accent);
+            font-size: 1.18rem;
+            font-weight: 700;
+            margin-top: 4px;
+        }
+
+        .field {
+            margin-top: 12px;
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+
+        .field label {
+            font-size: 0.86rem;
+            color: var(--text-muted);
+        }
+
+        input[type="date"],
+        input[type="file"] {
+            width: 100%;
+            border: 1px solid var(--line);
+            background: #0b1220;
+            color: var(--text-main);
+            border-radius: 8px;
+            padding: 8px 10px;
+        }
+
+        input[type="date"]::-webkit-calendar-picker-indicator {
+            filter: invert(1) brightness(1.4);
+            opacity: 1;
+            cursor: pointer;
+        }
+
+        .small-note {
+            color: var(--text-muted);
+            font-size: 0.8rem;
+            line-height: 1.4;
+        }
+
+        .radio-row,
+        .day-row {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin-top: 6px;
+        }
+
+        .chip {
+            font-size: 0.82rem;
+            border: 1px solid var(--line);
+            padding: 6px 8px;
+            border-radius: 999px;
+            background: rgba(255, 255, 255, 0.03);
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+        }
+
+        details {
+            margin-top: 10px;
+            border: 1px solid var(--line);
+            border-radius: 8px;
+            padding: 8px;
+            background: rgba(0, 0, 0, 0.15);
+        }
+
+        summary {
+            cursor: pointer;
+            color: var(--accent);
+            font-size: 0.9rem;
+        }
+
+        ul {
+            margin: 8px 0 0;
+            padding-left: 18px;
+        }
+
+        .status-ok {
+            color: var(--ok);
+        }
+
+        .status-bad {
+            color: var(--danger);
+        }
+
+        button {
+            background: transparent;
+            border: 1px solid var(--accent);
+            color: var(--accent);
+            padding: 10px 12px;
+            border-radius: 6px;
+            cursor: pointer;
+            width: 100%;
+            margin-top: 10px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.07em;
+            transition: all 0.2s;
+            font-size: 0.78rem;
+        }
+
+        button:hover {
+            background: var(--accent);
+            color: var(--bg-dark);
+            box-shadow: 0 0 15px var(--accent);
+        }
+
+        .danger-button {
+            border-color: var(--danger);
+            color: var(--danger);
+        }
+
+        .danger-button:hover {
+            background: var(--danger);
+            color: #0b1020;
+            box-shadow: 0 0 15px var(--danger);
+        }
+
+        .message {
+            margin-top: 12px;
+            border-radius: 8px;
+            padding: 10px;
+            font-size: 0.85rem;
+            line-height: 1.45;
+            border: 1px solid;
+        }
+
+        .message.warn {
+            color: #ffd4d4;
+            border-color: #d85a5a;
+            background: rgba(180, 48, 48, 0.2);
+        }
+
+        .message.good {
+            color: #ccffe8;
+            border-color: #3ca56f;
+            background: rgba(31, 117, 73, 0.2);
+        }
+
+        .generation-lab {
+            display: grid;
+            gap: 12px;
+        }
+
+        .lab-top {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+            gap: 10px;
+        }
+
+        .metric {
+            border: 1px solid var(--line);
+            border-radius: 8px;
+            padding: 10px;
+            background: rgba(255, 255, 255, 0.02);
+        }
+
+        .metric .label {
+            color: var(--text-muted);
+            font-size: 0.72rem;
+            text-transform: uppercase;
+        }
+
+        .metric .value {
+            color: var(--accent);
+            margin-top: 4px;
+            font-size: 1.05rem;
+            font-weight: 700;
+        }
+
+        .population-grid {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .comparison-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 10px;
+        }
+
+        .snapshot-card {
+            border: 1px solid #2a415f;
+            border-radius: 10px;
+            padding: 10px;
+            background: rgba(4, 16, 35, 0.65);
+        }
+
+        .snapshot-title {
+            display: flex;
+            justify-content: space-between;
+            gap: 8px;
+            align-items: baseline;
+            color: var(--parent-a);
+            font-size: 0.9rem;
+            margin-bottom: 8px;
+        }
+
+        .snapshot-title span:last-child {
+            color: var(--text-muted);
+            font-size: 0.78rem;
+        }
+
+        .mini-table-wrap {
+            overflow-x: auto;
+            border: 1px solid var(--line);
+            border-radius: 8px;
+        }
+
+        .mini-table {
+            width: 100%;
+            min-width: 660px;
+            border-collapse: collapse;
+        }
+
+        .mini-table th,
+        .mini-table td {
+            padding: 7px 8px;
+            border-bottom: 1px solid #304159;
+            font-size: 0.76rem;
+            text-align: left;
+            vertical-align: top;
+        }
+
+        .mini-table th {
+            color: var(--accent);
+            font-size: 0.68rem;
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+            background: rgba(0, 0, 0, 0.2);
+            position: sticky;
+            top: 0;
+            z-index: 1;
+        }
+
+        .row-safe {
+            background: rgba(71, 208, 140, 0.08);
+        }
+
+        .row-conflict {
+            background: rgba(255, 107, 107, 0.14);
+        }
+
+        .status-pill {
+            display: inline-block;
+            border-radius: 999px;
+            padding: 2px 8px;
+            font-weight: 700;
+            font-size: 0.68rem;
+            border: 1px solid;
+        }
+
+        .status-pill.safe {
+            color: var(--ok);
+            border-color: var(--ok);
+        }
+
+        .status-pill.conflict {
+            color: #ffb4b4;
+            border-color: var(--danger);
+        }
+
+        .day-card {
+            border: 1px solid #2a415f;
+            border-radius: 10px;
+            padding: 10px;
+            background: rgba(4, 16, 35, 0.65);
+            animation: fadeIn 0.28s ease;
+        }
+
+        .day-title {
+            color: var(--parent-a);
+            font-size: 0.86rem;
+            margin-bottom: 8px;
+            display: flex;
+            justify-content: space-between;
+            gap: 6px;
+        }
+
+        .organism {
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            padding: 8px;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 10px;
+            margin-bottom: 6px;
+        }
+
+        .gene-sequence {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 3px;
+            font-family: "Courier New", Courier, monospace;
+            font-weight: bold;
+            min-height: 24px;
+        }
+
+        .gene-node {
+            min-width: 18px;
+            height: 20px;
+            padding: 0 4px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            background: #334155;
+            border-radius: 4px;
+            font-size: 0.75rem;
+            border: 1px solid #415875;
+        }
+
+        .gene-correct {
+            color: var(--dna-green);
+            border-color: var(--dna-green);
+        }
+
+        .mutate-pulse {
+            animation: mutation-flash 0.7s ease-out;
+        }
+
+        @keyframes mutation-flash {
+            0% {
+                background: var(--dna-green);
+                box-shadow: 0 0 10px var(--dna-green);
+                transform: scale(1.12);
+            }
+
+            100% {
+                background: #334155;
+                box-shadow: 0 0 0 transparent;
+                transform: scale(1);
+            }
+        }
+
+        .table-wrap {
+            overflow-x: auto;
+            border: 1px solid var(--line);
+            border-radius: 8px;
+        }
+
+        table {
+            width: 100%;
+            min-width: 980px;
+            border-collapse: collapse;
+        }
+
+        th,
+        td {
+            padding: 8px 10px;
+            border-bottom: 1px solid #304159;
+            font-size: 0.82rem;
+            text-align: left;
+            vertical-align: top;
+        }
+
+        th {
+            color: var(--accent);
+            font-size: 0.72rem;
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+            background: rgba(0, 0, 0, 0.2);
+        }
+
+        .actions {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+            gap: 10px;
+        }
+
+        .playback-controls {
+            border: 1px solid var(--line);
+            border-radius: 10px;
+            padding: 12px;
+            background: rgba(0, 0, 0, 0.2);
+            display: grid;
+            gap: 10px;
+        }
+
+        .playback-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        .playback-row label {
+            color: var(--text-muted);
+            font-size: 0.8rem;
+        }
+
+        .seek-wrap {
+            display: grid;
+            gap: 6px;
+        }
+
+        .seek-input,
+        .speed-input {
+            width: 100%;
+            accent-color: var(--accent);
+            cursor: pointer;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(6px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        @media (max-width: 980px) {
+            .dashboard {
+                grid-template-columns: 1fr;
+            }
+
+            .control-panel {
+                position: static;
+            }
+
+            .comparison-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <header class="lab-header">
+        <h1>Genetic Algorithm Seminar Scheduler</h1>
+    </header>
+
+    <main class="dashboard">
+        <section class="control-panel">
+            <div class="stat-label">Mode</div>
+            <div class="stat-value">Schedule Generator</div>
+            <div class="stat-label">Max Generation</div>
+            <div class="stat-value" style="font-size: 1rem;">500</div>
+            <div class="stat-label">Current Generation (Live)</div>
+            <div class="stat-value" id="left-current-generation" style="font-size: 1rem;">
+                {{ live_progress.current_generation }} / {{ live_progress.max_generations }}
+            </div>
+            <div class="stat-label">Current Fitness (Live)</div>
+            <div class="stat-value" id="left-live-fitness" style="font-size: 1rem;">
+                {{ "%.4f"|format(live_progress.current_fitness or 0) }}
+            </div>
+            <div class="small-note" id="left-live-status">{{ live_progress.message }}</div>
+
+            <form action="/upload" method="post" enctype="multipart/form-data">
+                <div class="field">
+                    <label>Sumber Data</label>
+                    <div class="radio-row">
+                        <label class="chip"><input type="radio" name="data_source" value="default" {% if data_source
+                                !='custom' %}checked{% endif %}>Dataset</label>
+                        <label class="chip"><input type="radio" name="data_source" value="custom" {% if
+                                data_source=='custom' %}checked{% endif %}>Manual</label>
+                    </div>
+                </div>
+
+                <div class="field">
+                    <label>Status dataset folder</label>
+                    <ul class="small-note">
+                        <li>Kelompok: {{ default_dataset_files['kelompok'] }} <span
+                                class="{% if dataset_status['kelompok'] %}status-ok{% else %}status-bad{% endif %}">{%
+                                if dataset_status['kelompok'] %}OK{% else %}Missing{% endif %}</span></li>
+                        <li>Hari: {{ default_dataset_files['hari'] }} <span
+                                class="{% if dataset_status['hari'] %}status-ok{% else %}status-bad{% endif %}">{% if
+                                dataset_status['hari'] %}OK{% else %}Missing{% endif %}</span></li>
+                        <li>Dosen: {{ default_dataset_files['jadwal_dosen'] }} <span
+                                class="{% if dataset_status['jadwal_dosen'] %}status-ok{% else %}status-bad{% endif %}">{%
+                                if dataset_status['jadwal_dosen'] %}OK{% else %}Missing{% endif %}</span></li>
+                        <li>Mahasiswa: {{ default_dataset_files['jadwal_mahasiswa'] }} <span
+                                class="{% if dataset_status['jadwal_mahasiswa'] %}status-ok{% else %}status-bad{% endif %}">{%
+                                if dataset_status['jadwal_mahasiswa'] %}OK{% else %}Missing{% endif %}</span></li>
+                        <li>Ruangan: {{ default_dataset_files['ruangan'] }} <span
+                                class="{% if dataset_status['ruangan'] %}status-ok{% else %}status-bad{% endif %}">{% if
+                                dataset_status['ruangan'] %}OK{% else %}Missing{% endif %}</span></li>
+                    </ul>
+                </div>
+
+                <details {% if data_source=='custom' %}open{% endif %}>
+                    <summary>Unggah Manual</summary>
+                    <div class="field"><label for="kelompok">Kelompok</label><input type="file" id="kelompok"
+                            name="kelompok" accept=".xlsx,.xls"></div>
+                    <div class="field"><label for="hari">Hari</label><input type="file" id="hari" name="hari"
+                            accept=".xlsx,.xls"></div>
+                    <div class="field"><label for="jadwal_dosen">Jadwal Dosen</label><input type="file"
+                            id="jadwal_dosen" name="jadwal_dosen" accept=".xlsx,.xls"></div>
+                    <div class="field"><label for="jadwal_mahasiswa">Jadwal Mahasiswa</label><input type="file"
+                            id="jadwal_mahasiswa" name="jadwal_mahasiswa" accept=".xlsx,.xls"></div>
+                    <div class="field"><label for="ruangan">Ruangan</label><input type="file" id="ruangan"
+                            name="ruangan" accept=".xlsx,.xls"></div>
+                </details>
+
+                <div class="field">
+                    <label>Pilih hari operasional</label>
+                    <div class="day-row">
+                        <label class="chip"><input type="checkbox" name="selected_days" value="Monday" {% if not
+                                selected_days or 'Monday' in selected_days %}checked{% endif %}>Sen</label>
+                        <label class="chip"><input type="checkbox" name="selected_days" value="Tuesday" {% if not
+                                selected_days or 'Tuesday' in selected_days %}checked{% endif %}>Sel</label>
+                        <label class="chip"><input type="checkbox" name="selected_days" value="Wednesday" {% if not
+                                selected_days or 'Wednesday' in selected_days %}checked{% endif %}>Rab</label>
+                        <label class="chip"><input type="checkbox" name="selected_days" value="Thursday" {% if not
+                                selected_days or 'Thursday' in selected_days %}checked{% endif %}>Kam</label>
+                        <label class="chip"><input type="checkbox" name="selected_days" value="Friday" {% if not
+                                selected_days or 'Friday' in selected_days %}checked{% endif %}>Jum</label>
+                        <label class="chip"><input type="checkbox" name="selected_days" value="Saturday" {% if
+                                selected_days and 'Saturday' in selected_days %}checked{% endif %}>Sab</label>
+                        <label class="chip"><input type="checkbox" name="selected_days" value="Sunday" {% if
+                                selected_days and 'Sunday' in selected_days %}checked{% endif %}>Min</label>
+                    </div>
+                </div>
+
+                <div class="field"><label for="tanggal_mulai">Tanggal Mulai</label><input type="date" id="tanggal_mulai"
+                        name="tanggal_mulai" required></div>
+                <div class="field"><label for="tanggal_selesai">Tanggal Selesai</label><input type="date"
+                        id="tanggal_selesai" name="tanggal_selesai" required></div>
+
+                <button type="submit">Execute Evolution</button>
+                <button type="button" class="danger-button"
+                    onclick="window.location.href='{{ url_for('reset_interface') }}'">Reset Interface</button>
+            </form>
+
+            {% if warning_message %}
+            <div class="message {% if 'Peringatan' in warning_message %}warn{% else %}good{% endif %}">{{
+                warning_message }}</div>
+            {% endif %}
+        </section>
+
+        <section class="panel-stack">
+            {% if schedule %}
+            <section class="panel generation-lab">
+                <h2 style="margin: 0;">Evolution Playback</h2>
+                <div class="lab-top">
+                    <div class="metric">
+                        <div class="label">Generation</div>
+                        <div class="value" id="gen-count">01</div>
+                    </div>
+                    <div class="metric">
+                        <div class="label">Current Fitness</div>
+                        <div class="value" id="current-fit">0%</div>
+                    </div>
+                    <div class="metric">
+                        <div class="label">Best Fitness So Far</div>
+                        <div class="value" id="best-fit">0%</div>
+                    </div>
+                    <div class="metric">
+                        <div class="label">Best Conflict Rows</div>
+                        <div class="value" id="best-conflict">0</div>
+                    </div>
+                    <div class="metric">
+                        <div class="label">Elapsed</div>
+                        <div class="value">{{ elapsed_time }}s</div>
+                    </div>
+                </div>
+
+                <div class="actions">
+                    <button type="button" onclick="startPlayback()">Play Evolution</button>
+                    <button type="button" id="pause-resume-btn" onclick="togglePauseResume()">Pause</button>
+                    <button type="button" onclick="restartPlayback()">Replay From Gen 1</button>
+                </div>
+
+                <div class="playback-controls">
+                    <div class="playback-row">
+                        <label for="generation-seek">SeekBar Navigation</label>
+                        <div class="small-note" id="seek-label">Gen 1 / 1 (0%)</div>
+                    </div>
+                    <div class="seek-wrap">
+                        <input type="range" id="generation-seek" class="seek-input" min="1" max="1" value="1" step="1">
+                    </div>
+                    <div class="playback-row">
+                        <label for="speed-control">Playback speed</label>
+                        <div class="small-note" id="speed-label">1.0x</div>
+                    </div>
+                    <input type="range" id="speed-control" class="speed-input" min="0.5" max="10" value="1" step="0.5">
+                </div>
+
+                <div class="comparison-grid">
+                    <div class="snapshot-card">
+                        <div class="snapshot-title">
+                            <span>Current Generation Candidate</span>
+                            <span id="current-summary">Rows: 0</span>
+                        </div>
+                        <div class="mini-table-wrap">
+                            <table class="mini-table">
+                                <thead>
+                                    <tr>
+                                        <th>Kelompok</th>
+                                        <th>Hari/Tanggal</th>
+                                        <th>Waktu</th>
+                                        <th>Ruangan</th>
+                                        <th>Status</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="current-schedule-body"></tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <div class="snapshot-card">
+                        <div class="snapshot-title">
+                            <span>Best Schedule Found So Far</span>
+                            <span id="best-summary">Rows: 0</span>
+                        </div>
+                        <div class="mini-table-wrap">
+                            <table class="mini-table">
+                                <thead>
+                                    <tr>
+                                        <th>Kelompok</th>
+                                        <th>Hari/Tanggal</th>
+                                        <th>Waktu</th>
+                                        <th>Ruangan</th>
+                                        <th>Status</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="best-schedule-body"></tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+                <div class="small-note">Visual memakai data asli tiap generasi: panel kiri menunjukkan kandidat terbaik
+                    pada generasi saat ini, panel kanan menyimpan jadwal terbaik yang pernah ditemukan. Baris merah =
+                    bentrok, baris hijau = aman.</div>
+            </section>
+
+            <section class="panel">
+                <h2 style="margin-top: 0;">Statistik Solusi</h2>
+                <div class="lab-top">
+                    <div class="metric">
+                        <div class="label">Best Accuracy</div>
+                        <div class="value">{{ best_accuracy }}%</div>
+                    </div>
+                    <div class="metric">
+                        <div class="label">Best Fitness</div>
+                        <div class="value">{{ best_fitness }}</div>
+                    </div>
+                    <div class="metric">
+                        <div class="label">Generations</div>
+                        <div class="value">{{ num_iterations }}</div>
+                    </div>
+                    <div class="metric">
+                        <div class="label">Runtime</div>
+                        <div class="value">{{ elapsed_time }}s</div>
+                    </div>
+                </div>
+            </section>
+
+            <section class="panel">
+                <h2 style="margin-top: 0;">Jadwal Seminar</h2>
+                <div class="table-wrap">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Kelompok</th>
+                                <th>Nama Kelompok</th>
+                                <th>Dosen Pembimbing 1</th>
+                                <th>Dosen Pembimbing 2</th>
+                                <th>Dosen Penguji 1</th>
+                                <th>Dosen Penguji 2</th>
+                                <th>Waktu</th>
+                                <th>Ruangan</th>
+                                <th>Hari</th>
+                                <th>Tanggal</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for seminar in schedule %}
+                            <tr>
+                                <td>{{ seminar.kode_kelompok }}</td>
+                                <td>{{ seminar.nama_kelompok }}</td>
+                                <td>{{ seminar.dosen_pembimbing_1 }}</td>
+                                <td>{{ seminar.dosen_pembimbing_2 }}</td>
+                                <td>{{ seminar.dosen_penguji_1 }}</td>
+                                <td>{{ seminar.dosen_penguji_2 }}</td>
+                                <td>{{ seminar.time }}</td>
+                                <td>{{ seminar.room }}</td>
+                                <td>{{ seminar.day }}</td>
+                                <td>{{ seminar.date }}</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+
+            <section class="panel">
+                <h2 style="margin-top: 0;">Pengecekan Bentrok</h2>
+                {% if conflicts %}
+                <ul>
+                    {% for conflict in conflicts %}
+                    <li>
+                        {{ conflict.type }} antara {{ conflict.seminar1 }} dan {{ conflict.seminar2 }} pada {{
+                        conflict.time }}
+                        {% if conflict.type == "Room conflict" %}
+                        di ruangan {{ conflict.room }}
+                        {% elif conflict.type in ["Dosen pembimbing conflict", "Dosen penguji conflict"] %}
+                        dengan dosen {{ conflict.dosen }}
+                        {% elif conflict.type == "Pembimbing and Penguji conflict" %}
+                        dengan dosen {{ conflict.dosen|join(', ') }}
+                        {% endif %}
+                        pada hari {{ conflict.day }} tanggal {{ conflict.date }}
+                    </li>
+                    {% endfor %}
+                </ul>
+                {% else %}
+                <div class="small-note" style="color: var(--ok);">Tidak ada bentrokan dalam jadwal.</div>
+                {% endif %}
+
+                <div class="actions" style="margin-top: 12px;">
+                    <form action="{{ url_for('download_schedule') }}" method="get"><button type="submit">Download
+                            Jadwal</button></form>
+                    <form action="{{ url_for('plot_fitness') }}" method="get"><button type="submit">Tampilkan Plot
+                            Fitness</button></form>
+                    <form action="{{ url_for('generate_new_schedule') }}" method="get"><button type="submit">Generate
+                            Jadwal Lagi</button></form>
+                </div>
+            </section>
+            {% else %}
+            <section class="panel">
+                <h2 style="margin-top: 0;">Ready</h2>
+                <p class="small-note">Isi konfigurasi di panel kiri lalu tekan Execute Evolution untuk memulai. Setelah
+                    jadwal selesai dibuat, Anda akan melihat replay generasi dengan animasi berbasis fitness.</p>
+            </section>
+            {% endif %}
+        </section>
+    </main>
+
+    <script>
+        (function () {
+            const hasScheduleOnLoad = {{ (schedule is not none) | tojson
+        }};
+        let didAutoReload = false;
+
+        const liveGenerationEl = document.getElementById("left-current-generation");
+        const liveFitnessEl = document.getElementById("left-live-fitness");
+        const liveStatusEl = document.getElementById("left-live-status");
+
+        function updateLivePanel(data) {
+            if (liveGenerationEl) {
+                const currentGen = Number(data.current_generation || 0);
+                const maxGen = Number(data.max_generations || 500);
+                liveGenerationEl.innerText = `${currentGen} / ${maxGen}`;
+            }
+
+            if (liveFitnessEl) {
+                const currentFitness = Number(data.current_fitness || 0);
+                liveFitnessEl.innerText = currentFitness.toFixed(4);
+            }
+
+            if (liveStatusEl) {
+                if (data.error) {
+                    liveStatusEl.innerText = `Error: ${data.error}`;
+                } else if (data.is_running) {
+                    liveStatusEl.innerText = "Evolusi sedang berjalan...";
+                } else if (data.completed) {
+                    liveStatusEl.innerText = "Selesai. Memuat hasil...";
+                } else {
+                    liveStatusEl.innerText = data.message || "Idle";
+                }
+            }
+        }
+
+        async function pollProgress() {
+            try {
+                const response = await fetch("/progress", { cache: "no-store" });
+                if (!response.ok) return;
+                const data = await response.json();
+                updateLivePanel(data);
+
+                if (data.completed && data.has_schedule && !hasScheduleOnLoad && !didAutoReload) {
+                    didAutoReload = true;
+                    window.location.reload();
+                }
+            } catch (error) {
+                // Ignore transient polling errors.
+            }
+        }
+
+        pollProgress();
+        window.setInterval(pollProgress, 800);
+        }) ();
+    </script>
+
+    {% if schedule %}
+    <script>
+        const GENERATION_HISTORY = {{ (generation_visual_data or[]) | tojson }};
+        let currentGeneration = 0;
+        let timerId = null;
+        let isPlaying = false;
+        const BASE_INTERVAL_MS = 250;
+        const MIN_INTERVAL_MS = 25;
+        let playbackSpeed = 1;
+
+        const genCountEl = document.getElementById("gen-count");
+        const currentFitEl = document.getElementById("current-fit");
+        const bestFitEl = document.getElementById("best-fit");
+        const bestConflictEl = document.getElementById("best-conflict");
+        const currentBodyEl = document.getElementById("current-schedule-body");
+        const bestBodyEl = document.getElementById("best-schedule-body");
+        const currentSummaryEl = document.getElementById("current-summary");
+        const bestSummaryEl = document.getElementById("best-summary");
+        const pauseResumeBtn = document.getElementById("pause-resume-btn");
+        const generationSeekEl = document.getElementById("generation-seek");
+        const seekLabelEl = document.getElementById("seek-label");
+        const speedControlEl = document.getElementById("speed-control");
+        const speedLabelEl = document.getElementById("speed-label");
+        const leftCurrentGenerationEl = document.getElementById("left-current-generation");
+
+        function setPauseLabel(label) {
+            if (pauseResumeBtn) pauseResumeBtn.innerText = label;
+        }
+
+        function escapeHtml(value) {
+            return String(value || "")
+                .replace(/&/g, "&amp;")
+                .replace(/</g, "&lt;")
+                .replace(/>/g, "&gt;")
+                .replace(/\"/g, "&quot;")
+                .replace(/'/g, "&#39;");
+        }
+
+        function rowStatusHtml(row) {
+            if (!row.has_conflict) {
+                return "<span class='status-pill safe'>Aman</span>";
+            }
+            const reason = (row.conflict_reasons || []).join(", ");
+            return `<span class='status-pill conflict'>Bentrok</span><div class='small-note'>${escapeHtml(reason)}</div>`;
+        }
+
+        function scheduleRowsHtml(rows) {
+            if (!rows || !rows.length) {
+                return "<tr><td colspan='5' class='small-note'>Tidak ada data</td></tr>";
+            }
+
+            return rows.map(row => {
+                const rowClass = row.has_conflict ? "row-conflict" : "row-safe";
+                return `
+                    <tr class='${rowClass}'>
+                        <td>${escapeHtml(row.kode_kelompok)}<div class='small-note'>${escapeHtml(row.nama_kelompok)}</div></td>
+                        <td>${escapeHtml(row.day)}<div class='small-note'>${escapeHtml(row.date)}</div></td>
+                        <td>${escapeHtml(row.time)}</td>
+                        <td>${escapeHtml(row.room)}</td>
+                        <td>${rowStatusHtml(row)}</td>
+                    </tr>
+                `;
+            }).join("");
+        }
+
+        function summarizeRows(rows) {
+            const total = rows.length;
+            const conflicts = rows.filter(r => r.has_conflict).length;
+            const safe = total - conflicts;
+            return { total, conflicts, safe };
+        }
+
+        function updateSeekUi(genIdx) {
+            const total = Math.max(1, GENERATION_HISTORY.length);
+            const clamped = Math.max(0, Math.min(genIdx, total - 1));
+            const percent = total <= 1 ? 100 : ((clamped + 1) / total) * 100;
+
+            if (generationSeekEl) {
+                generationSeekEl.max = String(total);
+                generationSeekEl.value = String(clamped + 1);
+            }
+
+            if (seekLabelEl) {
+                seekLabelEl.innerText = `Gen ${clamped + 1} / ${total} (${percent.toFixed(1)}%)`;
+            }
+
+            if (leftCurrentGenerationEl) {
+                leftCurrentGenerationEl.innerText = `${clamped + 1} / ${total}`;
+            }
+        }
+
+        function getPlaybackIntervalMs() {
+            return Math.max(MIN_INTERVAL_MS, Math.floor(BASE_INTERVAL_MS / Math.max(0.1, playbackSpeed)));
+        }
+
+        function getStepSize() {
+            const total = Math.max(1, GENERATION_HISTORY.length);
+            if (playbackSpeed >= 8) return Math.max(1, Math.ceil(total / 250));
+            if (playbackSpeed >= 5) return Math.max(1, Math.ceil(total / 500));
+            if (playbackSpeed >= 3) return 2;
+            return 1;
+        }
+
+        function updateSpeedLabel() {
+            if (speedLabelEl) {
+                speedLabelEl.innerText = `${playbackSpeed.toFixed(1)}x`;
+            }
+        }
+
+        function renderGeneration(genIdx) {
+            if (!GENERATION_HISTORY.length) {
+                currentBodyEl.innerHTML = "<tr><td colspan='5' class='small-note'>Data evolusi belum tersedia.</td></tr>";
+                bestBodyEl.innerHTML = "<tr><td colspan='5' class='small-note'>Data evolusi belum tersedia.</td></tr>";
+                if (leftCurrentGenerationEl) leftCurrentGenerationEl.innerText = "-";
+                updateSeekUi(0);
+                return;
+            }
+
+            const safeIdx = Math.max(0, Math.min(genIdx, GENERATION_HISTORY.length - 1));
+            const generationData = GENERATION_HISTORY[safeIdx] || {
+                current_fitness: 0,
+                best_fitness: 0,
+                current_schedule: [],
+                best_schedule: [],
+                best_conflict_rows: 0,
+            };
+
+            const currentRows = generationData.current_schedule || [];
+            const bestRows = generationData.best_schedule || [];
+            const currentSummary = summarizeRows(currentRows);
+            const bestSummary = summarizeRows(bestRows);
+
+            genCountEl.innerText = String(safeIdx + 1).padStart(2, "0");
+            currentFitEl.innerText = `${(Number(generationData.current_fitness || 0) * 100).toFixed(2)}%`;
+            bestFitEl.innerText = `${(Number(generationData.best_fitness || 0) * 100).toFixed(2)}%`;
+            bestConflictEl.innerText = String(generationData.best_conflict_rows || 0);
+            currentSummaryEl.innerText = `Rows: ${currentSummary.total} | Red: ${currentSummary.conflicts} | Green: ${currentSummary.safe}`;
+            bestSummaryEl.innerText = `Rows: ${bestSummary.total} | Red: ${bestSummary.conflicts} | Green: ${bestSummary.safe}`;
+
+            currentBodyEl.innerHTML = scheduleRowsHtml(currentRows);
+            bestBodyEl.innerHTML = scheduleRowsHtml(bestRows);
+            updateSeekUi(safeIdx);
+        }
+
+        function stepPlayback() {
+            if (!GENERATION_HISTORY.length || !isPlaying) return;
+            renderGeneration(currentGeneration);
+            const currentFitness = Number((GENERATION_HISTORY[currentGeneration] || {}).best_fitness || 0);
+            const perfect = currentFitness >= 1.0;
+            if (perfect || currentGeneration >= GENERATION_HISTORY.length - 1) {
+                pausePlayback();
+                return;
+            }
+            currentGeneration = Math.min(
+                GENERATION_HISTORY.length - 1,
+                currentGeneration + getStepSize()
+            );
+
+            timerId = setTimeout(stepPlayback, getPlaybackIntervalMs());
+        }
+
+        function startPlayback() {
+            if (isPlaying) return;
+            isPlaying = true;
+            if (timerId) {
+                clearTimeout(timerId);
+                timerId = null;
+            }
+            timerId = setTimeout(stepPlayback, getPlaybackIntervalMs());
+            setPauseLabel("Pause");
+        }
+
+        function pausePlayback() {
+            if (!isPlaying && !timerId) return;
+            isPlaying = false;
+            clearTimeout(timerId);
+            timerId = null;
+            setPauseLabel("Resume");
+        }
+
+        function togglePauseResume() {
+            if (timerId) {
+                pausePlayback();
+                return;
+            }
+            startPlayback();
+        }
+
+        function restartPlayback() {
+            pausePlayback();
+            currentGeneration = 0;
+            renderGeneration(currentGeneration);
+            setPauseLabel("Pause");
+        }
+
+        if (generationSeekEl) {
+            generationSeekEl.max = String(Math.max(1, GENERATION_HISTORY.length));
+            generationSeekEl.addEventListener("input", (event) => {
+                const value = Number(event.target.value || 1);
+                currentGeneration = Math.max(0, Math.min(value - 1, Math.max(0, GENERATION_HISTORY.length - 1)));
+                renderGeneration(currentGeneration);
+            });
+        }
+
+        if (speedControlEl) {
+            speedControlEl.addEventListener("input", (event) => {
+                const nextSpeed = Number(event.target.value || 1);
+                playbackSpeed = Math.max(0.5, Math.min(10, nextSpeed));
+                updateSpeedLabel();
+
+                if (isPlaying) {
+                    clearTimeout(timerId);
+                    timerId = setTimeout(stepPlayback, getPlaybackIntervalMs());
+                }
+            });
+        }
+
+        window.startPlayback = startPlayback;
+        window.pausePlayback = pausePlayback;
+        window.togglePauseResume = togglePauseResume;
+        window.restartPlayback = restartPlayback;
+
+        updateSpeedLabel();
+        renderGeneration(0);
+    </script>
+    {% endif %}
+</body>
+
+</html>
